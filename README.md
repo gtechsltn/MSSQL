@@ -425,6 +425,17 @@ To configure a C# ADO.NET Windows Service to use Windows Authentication (also kn
 string connectionString = "Data Source=localhost;Initial Catalog=YourDatabase;Integrated Security=true;";
 ```
 
+```
+<?xml version="1.0" encoding="utf-8" ?>
+<configuration>
+    <connectionStrings>
+        <add name="YourConnectionStringName"
+             connectionString="Data Source=YourServerName;Initial Catalog=YourDatabaseName;Integrated Security=True;"
+             providerName="System.Data.SqlClient" />
+    </connectionStrings>
+</configuration>
+```
+
 This means the service will use the Windows account identity of the service itself to authenticate to SQL Server.
 
 ## Important: Ensure Proper Permissions
@@ -461,6 +472,44 @@ using (var conn = new SqlConnection(connectionString))
     var cmd = new SqlCommand("SELECT COUNT(*) FROM Users", conn);
     int count = (int)cmd.ExecuteScalar();
     Console.WriteLine($"User count: {count}");
+}
+```
+
+```
+using System.Configuration;
+using System.Data.SqlClient;
+
+// ... in your service class (e.g., OnStart or a helper method)
+
+public void YourDatabaseOperation()
+{
+    string connectionString = ConfigurationManager.ConnectionStrings["YourConnectionStringName"].ConnectionString;
+
+    using (SqlConnection connection = new SqlConnection(connectionString))
+    {
+        try
+        {
+            connection.Open();
+            // Perform your database operations here
+            // For example:
+            using (SqlCommand command = new SqlCommand("SELECT GETDATE()", connection))
+            {
+                DateTime serverTime = (DateTime)command.ExecuteScalar();
+                // Log or process serverTime
+                EventLog.WriteEntry("YourService", $"Connected to SQL Server. Server time: {serverTime}", EventLogEntryType.Information);
+            }
+        }
+        catch (SqlException ex)
+        {
+            EventLog.WriteEntry("YourService", $"Database error: {ex.Message}", EventLogEntryType.Error);
+            // Handle the error appropriately
+        }
+        catch (Exception ex)
+        {
+            EventLog.WriteEntry("YourService", $"General error: {ex.Message}", EventLogEntryType.Error);
+            // Handle the error appropriately
+        }
+    }
 }
 ```
 
