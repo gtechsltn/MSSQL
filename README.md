@@ -415,3 +415,56 @@ RETURN
 + Multiple Result Sets Using Entity Framework Core
 + https://github.com/gtechsltn/AllTheThings
 + https://github.com/khalidabuhakmeh/allthethings
+
+# C# ADO.NET Windows Service Windows Authentication
+
+To configure a C# ADO.NET Windows Service to use Windows Authentication (also known as Integrated Security) instead of SQL Server username/password, simply update your connection string to use:
+
+## Sample Connection String (Windows Authentication)
+```
+string connectionString = "Data Source=localhost;Initial Catalog=YourDatabase;Integrated Security=true;";
+```
+
+This means the service will use the Windows account identity of the service itself to authenticate to SQL Server.
+
+## Important: Ensure Proper Permissions
+
+Your Windows Service will run under a specific Windows account, typically:
+
++ LocalSystem (default, high privilege)
++ NetworkService (limited, use this carefully)
++ Custom domain/service account (recommended for production)
+
+Make sure that account has login permissions in SQL Server and access to the target database.
+
+## How to Grant Access in SQL Server
+
+Assuming the service runs under DOMAIN\MyServiceAccount:
+
+```
+CREATE LOGIN [DOMAIN\MyServiceAccount] FROM WINDOWS;
+USE YourDatabase;
+CREATE USER [DOMAIN\MyServiceAccount] FOR LOGIN [DOMAIN\MyServiceAccount];
+ALTER ROLE db_datareader ADD MEMBER [DOMAIN\MyServiceAccount];
+ALTER ROLE db_datawriter ADD MEMBER [DOMAIN\MyServiceAccount];
+```
+
+## ADO.NET Example
+```
+using System.Data.SqlClient;
+
+string connectionString = "Data Source=localhost;Initial Catalog=YourDatabase;Integrated Security=true;";
+
+using (var conn = new SqlConnection(connectionString))
+{
+    conn.Open();
+    var cmd = new SqlCommand("SELECT COUNT(*) FROM Users", conn);
+    int count = (int)cmd.ExecuteScalar();
+    Console.WriteLine($"User count: {count}");
+}
+```
+
+## Best Practice for Windows Services
+* Run the service under a dedicated service account.
+* Grant it the minimum required privileges on SQL Server.
+* Avoid storing SQL usernames/passwords in app.config or code.
