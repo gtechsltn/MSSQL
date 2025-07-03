@@ -1,4 +1,6 @@
 # MS SQL Server
+* https://github.com/gtechsltn/MSSQL
+* https://github.com/gtechsltn/IDENTITY-COLUMN
 
 ```
 + System.Data.SqlClient version: xxx
